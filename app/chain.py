@@ -8,6 +8,8 @@ from langchain_core.messages import HumanMessage
 # Set USER_AGENT
 os.environ["USER_AGENT"] = "LangChainRAGAgent/1.0"
 
+from prompts import get_rag_prompt
+
 @dynamic_prompt
 def prompt_with_context(request: ModelRequest) -> str:
     """Inject context into state messages."""
@@ -23,12 +25,7 @@ def prompt_with_context(request: ModelRequest) -> str:
     retrieved_docs = vector_store.similarity_search(last_query, k=2)
     docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
 
-    system_message = (
-        "You are a helpful assistant. Use the following context in your response:"
-        f"\n\n{docs_content}"
-    )
-
-    return system_message
+    return get_rag_prompt(docs_content)
 
 # Create the agent with the middleware
 # The new create_agent returns a graph that can be invoked directly
@@ -36,7 +33,7 @@ agent = create_agent(model, tools=[], middleware=[prompt_with_context])
 
 if __name__ == "__main__":
     print("--- Middleware Chain (Graph) Ready ---")
-    query = "What is task decomposition?"
+    query = "What information do you collect?"
     print(f"Question: {query}")
     
     # Graphs returned by create_agent are usually invoked with a dict containing "messages"
