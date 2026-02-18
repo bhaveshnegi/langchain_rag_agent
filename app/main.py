@@ -7,23 +7,47 @@ from langchain_classic import hub
 # Set USER_AGENT for LangChain requests
 os.environ["USER_AGENT"] = "LangChainRAGAgent/1.0"
 
-def main():
+def get_agent_executor():
     # 1. Define the tools
     tools = [retrieve_context]
 
-    # 2. Pull a standard ReAct prompt from the hub
-    # This Pull uses the langchain_classic version which is compatible with ChatHuggingFace
-    prompt = hub.pull("hwchase17/react")
+    # 2. Define a custom ReAct prompt with grounding rules
+    from prompts import AGENT_INSTRUCTIONS, AGENT_FINAL_FORMAT
+    from langchain_classic.prompts import PromptTemplate
+
+    template = (
+        AGENT_INSTRUCTIONS +
+        "\n\nAnswer the following questions as best you can. You have access to the following tools:\n\n"
+        "{tools}\n\n"
+        "Use the following format:\n\n"
+        "Question: the input question you must answer\n"
+        "Thought: you should always think about what to do\n"
+        "Action: the action to take, should be one of [{tool_names}]\n"
+        "Action Input: the input to the action\n"
+        "Observation: the result of the action\n"
+        "... (this Thought/Action/Action Input/Observation can repeat N times)\n"
+        "Thought: I now know the final answer\n"
+        "Final Answer: " + AGENT_FINAL_FORMAT + "\n"
+        "\n"
+        "Begin!\n\n"
+        "Question: {input}\n"
+        "Thought: {agent_scratchpad}"
+    )
+
+    prompt = PromptTemplate.from_template(template)
 
     # 3. Create the ReAct agent
     agent = create_react_agent(model, tools, prompt)
 
     # 4. Create the AgentExecutor
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+    return AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
+agent_executor = get_agent_executor()
+
+if __name__ == "__main__":
     # 5. Run the agent
     print("--- RAG Agent Ready ---")
-    query = "What is task decomposition in the context of LLM agents?"
+    query = "What information do you collect?"
     print(f"Question: {query}")
     
     try:
@@ -33,6 +57,3 @@ def main():
     except Exception as e:
         print(f"\n--- Error during execution ---")
         print(e)
-
-if __name__ == "__main__":
-    main()

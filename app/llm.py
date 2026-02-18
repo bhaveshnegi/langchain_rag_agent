@@ -12,9 +12,12 @@ if hf_token:
     os.environ["HF_TOKEN"] = hf_token
     os.environ["HUGGINGFACE_API_TOKEN"] = hf_token
 
+# Note: We use HuggingFaceEndpoint which serves as the LangChain wrapper 
+# for the HF Inference API (Serverless), avoiding local model downloads.
 llm = HuggingFaceEndpoint(
-    repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-    temperature=0.7,
+    repo_id="mistralai/Mistral-7B-Instruct-v0.2", # Using standard repo for serverless
+    huggingfacehub_api_token=hf_token,
+    temperature=0.1,
     max_new_tokens=1024,
 )
 model = ChatHuggingFace(llm=llm)

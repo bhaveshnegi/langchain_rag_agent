@@ -25,7 +25,9 @@ def prompt_with_context(request: ModelRequest) -> str:
     retrieved_docs = vector_store.similarity_search(last_query, k=2)
     docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
 
-    return get_rag_prompt(docs_content)
+    prompt = get_rag_prompt(docs_content)
+    # print("DEBUG PROMPT:", prompt) # Uncomment to see the full prompt
+    return prompt
 
 # Create the agent with the middleware
 # The new create_agent returns a graph that can be invoked directly

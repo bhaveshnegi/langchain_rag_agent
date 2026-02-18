@@ -13,9 +13,14 @@
 #     assert len(docs) == 1
 #     print(f"Total characters: {len(docs[0].page_content)}")
 
+import os
 from langchain_community.document_loaders import PyPDFLoader
 
-loader = PyPDFLoader("../data/rag.pdf")
+# Get absolute path to the data folder
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PDF_PATH = os.path.join(os.path.dirname(CURRENT_DIR), "data", "rag.pdf")
+
+loader = PyPDFLoader(PDF_PATH)
 docs = loader.load()
 
 if __name__ == "__main__":
