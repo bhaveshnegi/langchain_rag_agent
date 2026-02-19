@@ -14,13 +14,13 @@
 #     print(f"Total characters: {len(docs[0].page_content)}")
 
 import os
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 
 # Get absolute path to the data folder
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PDF_PATH = os.path.join(os.path.dirname(CURRENT_DIR), "data", "rag.pdf")
+DATA_DIR = os.path.join(os.path.dirname(CURRENT_DIR), "data")
 
-loader = PyPDFLoader(PDF_PATH)
+loader = PyPDFDirectoryLoader(DATA_DIR)
 docs = loader.load()
 
 if __name__ == "__main__":

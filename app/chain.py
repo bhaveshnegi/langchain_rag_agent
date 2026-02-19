@@ -22,7 +22,8 @@ def prompt_with_context(request: ModelRequest) -> str:
     if not last_query:
         return "You are a helpful assistant."
 
-    retrieved_docs = vector_store.similarity_search(last_query, k=2)
+    from retriever import final_retriever
+    retrieved_docs = final_retriever.invoke(last_query)
     docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
 
     prompt = get_rag_prompt(docs_content)

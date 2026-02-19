@@ -1,66 +1,76 @@
 # LangChain RAG Agent & Chain
 
-This project implements a Retrieval-Augmented Generation (RAG) system using LangChain and Hugging Face. It demonstrates two distinct architectural patterns for building RAG applications: a **ReAct Agent** and a **Middleware Chain**.
-
-## 📂 Project Structure
-
-The codebase is modularized for clarity and reusability:
-
-### Core Modules
-- **`llm.py`**: Initializes the Large Language Model (Mistral-7B) via the Hugging Face Serverless Inference API. It automatically loads API tokens from the `.env` file.
-- **`embeddings.py`**: Configures the `sentence-transformers/all-mpnet-base-v2` model used to convert text into numerical vectors.
-- **`loader.py`**: Handles web scraping. It uses `WebBaseLoader` to fetch specific content from a blog post.
-- **`splitter.py`**: Breaks down large documents into smaller, overlapping chunks (1000 characters) to ensure context fits within LLM limits.
-- **`vectorstore.py`**: Sets up the local **Chroma** database where text chunks and their embeddings are stored.
-- **`ingest.py`**: The setup script. Run this to populate your local database with the blog post data.
-- **`tools.py`**: Defines the `retrieve_context` tool, which allows the agent to search the vector database.
-
-### Implementation Patterns
-- **`main.py` (ReAct Agent)**: Implements a "Reasoning and Acting" (ReAct) flow. The AI agent uses tools to decide when and what to search for in the database before answering.
-- **`chain.py` (Middleware Chain)**: Explores a more direct RAG pattern using **Middleware**. It uses `@dynamic_prompt` to automatically inject retrieved context into the system prompt *before* the model is called, skipping the agent loops.
+This project implements a Retrieval-Augmented Generation (RAG) system using LangChain and Hugging Face.system designed for deep document analysis. Featuring **Hybrid Search**, **Flashrank Re-ranking**, and a **Premium Glassmorphic Interface**, it provides accurate, evidence-backed insights from your technical documentation and privacy policies.
 
 ---
 
-## 🚀 How It Works
+## ✨ Key Features
 
-### 1. Ingestion Phase
-When you run `ingest.py`, the following happens:
-1. `loader.py` fetches the blog post html.
-2. `splitter.py` divides the text into 63 sub-documents.
-3. `vectorstore.py` (via `embeddings.py`) converts these chunks into vectors.
-4. The vectors are saved to the `./chroma_langchain_db` folder.
+- **🔍 Hybrid Retrieval Pipeline**: Combines semantic vector search (Chroma) with keyword matching (BM25) for maximum recall.
+- **🎯 Precise Re-ranking**: Integrates **Flashrank** to refine context and ensure the most relevant chunks reach the LLM.
+- **📂 Multi-Document Support**: Automatically scans and ingests all PDFs from the `data/` directory.
+- **🎨 Premium UI/UX**: A modern, glassmorphic chat interface with animated backgrounds, desktop-grade micro-animations, and Lucide icons.
+- **⚡ Middleware Chain**: Uses LangChain middleware (@dynamic_prompt) for ultra-fast, single-pass RAG execution.
+- **🤖 ReAct Agent**: A secondary pattern implementing a Reasoning-and-Acting loop for complex multi-step queries.
 
-### 2. Retrieval Phase
-- **In `main.py`**: The agent is provided with the `retrieve_context` tool. When asked a question, it chooses to "retrieve" information if its internal knowledge is insufficient.
-- **In `chain.py`**: The system is more "proactive." Every query triggers a similarity search in the background, and the results are appended to your instructions automatically via middleware.
+---
+
+## 📂 Project Structure
+
+The codebase is engineered for modularity and scalability:
+
+### 🧩 Core Modules
+- **`app/retriever.py`**: The heart of the system. Implements manual hybrid search and Flashrank integration.
+- **`app/loader.py`**: Batch processes PDFs using `PyPDFDirectoryLoader`.
+- **`app/vectorstore.py`**: Manages the local **Chroma** persistent database.
+- **`app/embeddings.py`**: Configures `all-mpnet-base-v2` for high-quality semantic vectors.
+- **`app/llm.py`**: Connects to the Mistral-7B inference engine via Hugging Face.
+- **`app/splitter.py`**: Handles recursive character splitting with optimized overlaps.
+- **`app/tools.py`**: Defines the `retrieve_context` tool, which allows the agent to search the vector database.
+
+### 🚀 Execution Entry Points
+- **`app/chain.py`**: The primary RAG pipeline using the hybrid-rerank middleware.
+- **`app/main.py`**: The standard ReAct agent implementation.
+- **`app/server.py`**: FastAPI backend serving the analysis engine.
+- **`index.html`**: The premium frontend application.
 
 ---
 
 ## 🛠️ Setup & Execution
 
-### Prerequisites
-1. Create a `.env` file in the root directory with your Hugging Face API key:
-   ```env
-   HUGGINGFACE_API_KEY=hf_your_token_here
-   ```
-2. Ensure you have the virtual environment activated.
+### 1. Prerequisites
+Create a `.env` file in the root with your credentials:
+```env
+HUGGINGFACE_API_KEY=hf_your_token_here
+```
 
-### Running the Project
-1. **Populate the database**:
-   ```powershell
-   python ingest.py
-   ```
-2. **Run the ReAct Agent**:
-   ```powershell
-   python main.py
-   ```
-3. **Run the Middleware Chain**:
-   ```powershell
-   python chain.py
-   ```
+### 2. Ingestion
+Drop your PDF documents into the `data/` folder, then run:
+```powershell
+python app/ingest.py
+```
+
+### 3. Start the Analysis Engine
+Run the FastAPI backend:
+```powershell
+uvicorn app.server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 4. Open the Interface
+Simply open `index.html` in your browser (or serve it via `python -m http.server 9000`).
 
 ---
 
-## 🧠 Why Two Versions?
-- **The Agent (`main.py`)** is best for complex tasks where the AI might need to search multiple times or decide *not* to search.
-- **The Chain (`chain.py`)** is faster and more reliable for standard Q&A tasks where you always want to provide context to the AI.
+## 🧠 Retrieval Architecture
+
+Nexback uses a sophisticated 2-stage retrieval process:
+1. **Candidate Retrieval**: Fetches top-$K$ candidates independently from **BM25** (keyword) and **Chroma** (vector).
+2. **Flashrank Re-ranking**: Merges the results and uses a cross-encoder model to re-score every chunk, delivering only the most contextually relevant evidence to the LLM.
+
+---
+
+## 📝 Document Evidence
+The system is tuned to provide transparency. Every answer is expected to include:
+- **Answer**: The concise factual response.
+- **Evidence**: Direct quotes from the source documents.
+- **Source Reasoning**: A brief explanation of the logic applied.

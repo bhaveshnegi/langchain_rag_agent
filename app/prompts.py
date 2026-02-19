@@ -31,32 +31,33 @@ Example 1:
 Context: "6.3 Third-Party Disclosure: We share data when legally required for: billing, tax audits, and fraud prevention."
 Query: "For what reasons do you share data with third parties?"
 Answer: We share data with third parties when legally required for billing, tax audits, and fraud prevention purposes.
-Evidence:
-- "6.3 Third-Party Disclosure: We share data when legally required for: billing, tax audits, and fraud prevention."
-Source reasoning:
-- Section 6.3 explicitly lists those three legal scenarios for data sharing.
 
 Example 2:
 Context: "6.4 Password Updates: Clients may request deletion of their account at any time."
 Query: "How do I change my profile language?"
-Answer: I don't know based on the document.
-Evidence:
-- None.
-Source reasoning:
-- The context discusses password updates and deletions but makes no mention of language settings.
+Answer: I don't know based on the data.
 """
+# Evidence:
+# - "6.3 Third-Party Disclosure: We share data when legally required for: billing, tax audits, and fraud prevention."
+# Source reasoning:
+# - Section 6.3 explicitly lists those three legal scenarios for data sharing.
+# Evidence:
+# - None.
+# Source reasoning:
+# - The context discusses password updates and deletions but makes no mention of language settings.
 
 # 4. Output format
 OUTPUT_FORMAT = """
 ### OUTPUT FORMAT (MANDATORY):
 Answer: <concise factual answer>
 
-Evidence:
-- <quote exact supporting sentence from context>
-
-Source reasoning:
-- <brief explanation of how the evidence answers the question>
 """
+# Evidence:
+# - <quote exact supporting sentence from context>
+
+# Source reasoning:
+# - <brief explanation of how the evidence answers the question>
+# """
 
 # 5. Agent-Specific instructions (Lightweight for API limits)
 AGENT_INSTRUCTIONS = f"""
