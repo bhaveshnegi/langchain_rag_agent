@@ -11,7 +11,7 @@ all_splits = text_splitter.split_documents(docs)
 
 # 2. Initialize BM25 Retriever
 bm25_retriever = BM25Retriever.from_documents(all_splits)
-bm25_retriever.k = 5  # Retrieve more for re-ranking
+bm25_retriever.k = 10  # Retrieve more for re-ranking
 
 # 3. Initialize Chroma Retriever
 chroma_retriever = vector_store.as_retriever(search_kwargs={"k": 5})
