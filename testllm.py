@@ -1,7 +1,7 @@
 from langchain_aws import ChatBedrock
 
 llm = ChatBedrock(
-    model_id="qwen.qwen3-235b-a22b-2507-v1:0",
+    model_id="mistral.mistral-7b-instruct-v0:2",
     region_name="ap-south-1",
 )
 
