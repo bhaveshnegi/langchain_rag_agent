@@ -5,6 +5,7 @@ from flashrank import Ranker, RerankRequest
 from vectorstore import vector_store
 from loader import docs
 from splitter import text_splitter
+from cache import get_cache, set_cache, get_hash
 
 # 1. Prepare documents for BM25
 all_splits = text_splitter.split_documents(docs)
@@ -26,6 +27,14 @@ class ManualHybridRetriever:
         self.ranker = ranker
 
     def invoke(self, query: str):
+        # Check cache
+        cache_key = f"retrieval:{get_hash(query)}"
+        cached_data = get_cache(cache_key)
+        if cached_data:
+            print(f"--- Retrieval Cache HIT ---")
+            return [Document(page_content=d["content"], metadata=d["metadata"]) for d in cached_data]
+
+        print(f"--- Retrieval Cache MISS ---")
         # 1. Get docs from both sources
         v_docs = self.vector_retriever.invoke(query)
         b_docs = self.bm25_retriever.invoke(query)
@@ -55,16 +64,30 @@ class ManualHybridRetriever:
         
         # 5. Convert back to LangChain Documents (top 3)
         final_docs = []
+        cache_data = []
         for res in results[:3]:
             # The result from flashrank contains the originalpassage info
-            final_docs.append(Document(
+            doc = Document(
                 page_content=res["text"],
                 metadata=res["meta"]
-            ))
+            )
+            final_docs.append(doc)
+            cache_data.append({"content": doc.page_content, "metadata": doc.metadata})
             
+        # Store in cache
+        set_cache(cache_key, cache_data)
         return final_docs
 
     def invoke_with_metadata(self, query: str):
+        # Check cache
+        cache_key = f"retrieval_meta:{get_hash(query)}"
+        cached_data = get_cache(cache_key)
+        if cached_data:
+            print(f"--- Retrieval (Meta) Cache HIT ---")
+            docs = [Document(page_content=d["content"], metadata=d["metadata"]) for d in cached_data["docs"]]
+            return docs, cached_data["ids"]
+
+        print(f"--- Retrieval (Meta) Cache MISS ---")
         v_docs = self.vector_retriever.invoke(query)
         b_docs = self.bm25_retriever.invoke(query)
         
@@ -89,6 +112,7 @@ class ManualHybridRetriever:
         
         final_docs = []
         doc_ids = []
+        cache_docs = []
         for res in results[:3]:
             # Extract a unique ID from metadata if possible, else use source + page
             meta = res["meta"]
@@ -97,11 +121,15 @@ class ManualHybridRetriever:
                 doc_id += f":page_{meta['page']}"
             doc_ids.append(doc_id)
 
-            final_docs.append(Document(
+            doc = Document(
                 page_content=res["text"],
                 metadata=meta
-            ))
+            )
+            final_docs.append(doc)
+            cache_docs.append({"content": doc.page_content, "metadata": doc.metadata})
             
+        # Store in cache
+        set_cache(cache_key, {"docs": cache_docs, "ids": doc_ids})
         return final_docs, doc_ids
 
 # Instantiate the final retriever
