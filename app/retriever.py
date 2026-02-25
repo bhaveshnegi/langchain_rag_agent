@@ -64,14 +64,57 @@ class ManualHybridRetriever:
             
         return final_docs
 
+    def invoke_with_metadata(self, query: str):
+        v_docs = self.vector_retriever.invoke(query)
+        b_docs = self.bm25_retriever.invoke(query)
+        
+        combined_docs = []
+        seen_texts = set()
+        
+        for doc in v_docs + b_docs:
+            if doc.page_content not in seen_texts:
+                combined_docs.append(doc)
+                seen_texts.add(doc.page_content)
+        
+        passages = []
+        for i, doc in enumerate(combined_docs):
+            passages.append({
+                "id": i,
+                "text": doc.page_content,
+                "meta": doc.metadata
+            })
+            
+        rerank_request = RerankRequest(query=query, passages=passages)
+        results = self.ranker.rerank(rerank_request)
+        
+        final_docs = []
+        doc_ids = []
+        for res in results[:3]:
+            # Extract a unique ID from metadata if possible, else use source + page
+            meta = res["meta"]
+            doc_id = meta.get("source", "unknown")
+            if "page" in meta:
+                doc_id += f":page_{meta['page']}"
+            doc_ids.append(doc_id)
+
+            final_docs.append(Document(
+                page_content=res["text"],
+                metadata=meta
+            ))
+            
+        return final_docs, doc_ids
+
 # Instantiate the final retriever
 final_retriever = ManualHybridRetriever(chroma_retriever, bm25_retriever, ranker)
 
 if __name__ == "__main__":
     print("--- Testing Manual Hybrid Retriever with Re-ranking ---")
     query = "What information do you collect?"
-    results = final_retriever.invoke(query)
-    for i, doc in enumerate(results):
+    retrieved_docs, doc_ids = final_retriever.invoke_with_metadata(query)
+    
+    print(f"Retrieved Document IDs: {doc_ids}")
+    
+    for i, doc in enumerate(retrieved_docs):
         print(f"\nResult {i+1}:")
         print(f"Content: {doc.page_content[:200]}...")
         print(f"Metadata: {doc.metadata}")

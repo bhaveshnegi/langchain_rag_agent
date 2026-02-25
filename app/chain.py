@@ -10,20 +10,33 @@ os.environ["USER_AGENT"] = "LangChainRAGAgent/1.0"
 
 from prompts import get_rag_prompt
 
+# Global map for correlation (fallback for ContextVar scope issues)
+CORRELATION_MAP = {}
+
 @dynamic_prompt
 def prompt_with_context(request: ModelRequest) -> str:
     """Inject context into state messages."""
-    # In this middleware, request.state is typically the agent state
-    # We look for the last message
-    last_query = ""
+    last_msg = None
     if "messages" in request.state and request.state["messages"]:
-        last_query = request.state["messages"][-1].content
+        last_msg = request.state["messages"][-1]
     
-    if not last_query:
+    if not last_msg or not last_msg.content:
         return "You are a helpful assistant."
+    
+    last_query = last_msg.content
 
     from retriever import final_retriever
-    retrieved_docs = final_retriever.invoke(last_query)
+    from observability import retrieved_doc_ids_var
+    retrieved_docs, doc_ids = final_retriever.invoke_with_metadata(last_query)
+    
+    # Store doc_ids in context variable
+    retrieved_doc_ids_var.set(doc_ids)
+    
+    # Also store in global map using message ID or object hash as key
+    # This helps when the context is lost
+    msg_key = getattr(last_msg, "id", None) or hash(last_msg)
+    CORRELATION_MAP[msg_key] = doc_ids
+    
     docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
 
     prompt = get_rag_prompt(docs_content)
