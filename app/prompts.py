@@ -80,17 +80,27 @@ RAG_SYSTEM_PROMPT_TEMPLATE = f"""
 
 {FEW_SHOT_EXAMPLES}
 
+### CONVERSATION SUMMARY:
+{{summary}}
+
+### CHAT HISTORY:
+{{chat_history}}
+
 ### CONTEXT:
 {{docs_content}}
 
 {OUTPUT_FORMAT}
 
 ### INSTRUCTION:
-Apply the rules to the following query based on the context above. Provide the structured response and then STOP.
+Apply the rules to the following query based on the context and history above. Provide the structured response and then STOP.
 """
 
-def get_rag_prompt(docs_content: str) -> str:
+def get_rag_prompt(docs_content: str, chat_history: str = "None", summary: str = "None") -> str:
     """
-    Format the final system prompt with retrieved context.
+    Format the final system prompt with retrieved context, chat history, and summary.
     """
-    return RAG_SYSTEM_PROMPT_TEMPLATE.format(docs_content=docs_content)
+    return RAG_SYSTEM_PROMPT_TEMPLATE.format(
+        docs_content=docs_content,
+        chat_history=chat_history,
+        summary=summary
+    )

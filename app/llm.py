@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from typing import Any, List, Optional
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, SystemMessage
 from langchain_core.outputs import ChatResult
 from cache import get_llm_cache, set_llm_cache, get_hash
 
@@ -67,6 +67,20 @@ class CachedChatModel(BaseChatModel):
             set_llm_cache(prompt_str, answer)
             
         return result
+
+    def summarize_conversation(self, messages: List[BaseMessage]) -> str:
+        """
+        Compress conversation history into a concise summary.
+        """
+        history_text = "\n".join([f"{m.type}: {m.content}" for m in messages])
+        summary_prompt = [
+            SystemMessage(content="Summarize the following conversation history concisely, focusing on key facts and user preferences. Maintain context needed for future questions."),
+            BaseMessage(content=history_text, type="human")
+        ]
+        
+        print("--- Summarizing Conversation History ---")
+        result = self.model_to_wrap.invoke(summary_prompt)
+        return result.content
 
     @property
     def _llm_type(self) -> str:
