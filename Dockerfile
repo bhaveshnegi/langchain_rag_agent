@@ -34,7 +34,6 @@ RUN python -m venv /opt/venv && \
 # -------------------------------
 # Copy index.html and other root files needed
 COPY index.html .
-COPY .env . 
 
 # Copy the app code
 COPY app/ ./app/
