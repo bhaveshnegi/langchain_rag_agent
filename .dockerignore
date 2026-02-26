@@ -1,0 +1,16 @@
+.git
+.gitignore
+.ragvenv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+.env
+error.log
+testllm.py
+app/test_memory.py
+Dockerfile
+.dockerignore
+chroma_langchain_db/
+data/
