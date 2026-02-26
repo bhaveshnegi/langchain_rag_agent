@@ -16,7 +16,13 @@ CORRELATION_MAP = {}
 
 @dynamic_prompt
 def prompt_with_context(request: ModelRequest) -> str:
-    """Inject context into state messages."""
+    """Inject context and memory into state messages."""
+    from memory import ChatMemoryManager
+    
+    # Extract session_id from request state (passed from server)
+    session_id = request.state.get("session_id", "default")
+    memory = ChatMemoryManager(session_id=session_id)
+    
     last_msg = None
     if "messages" in request.state and request.state["messages"]:
         last_msg = request.state["messages"][-1]
@@ -40,14 +46,28 @@ def prompt_with_context(request: ModelRequest) -> str:
     
     docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
 
-    prompt = get_rag_prompt(docs_content)
+    # Memory Management
+    # 1. Add current user message to history
+    memory.add_message(last_msg)
     
-    # LLM Response Cache Check
-    # We cache based on the full prompt hash because context can change
-    # Note: This is a bit tricky here since we are in a 'dynamic_prompt' middleware
-    # which is intended to return a prompt string, not the final answer.
-    # However, we can use a trick to skip the LLM call if we want, 
-    # but the middleware system might expect a prompt.
+    # 2. Check if we need to summarize
+    if memory.should_summarize():
+        full_history = memory.get_history()
+        summary = model.summarize_conversation(full_history)
+        memory.set_summary(summary)
+        memory.clear_history()
+        # Keep the latest message in history after clearing
+        memory.add_message(last_msg)
+    
+    # 3. Get history and summary for the prompt
+    windowed_history = memory.get_windowed_history()
+    summary = memory.get_summary() or "None"
+    
+    history_str = "\n".join([f"{m.type}: {m.content}" for m in windowed_history])
+    
+    prompt = get_rag_prompt(docs_content, chat_history=history_str, summary=summary)
+    
+    # Note: AI messages are added to memory in the server after generation
     
     return prompt
 

@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
 import sys
+from typing import Optional
 
 # Add 'app' directory to sys.path to allow standalone imports (like 'import llm')
 # regardless of where the server is started from.
@@ -31,6 +32,7 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     query: str
+    session_id: Optional[str] = "default"
 
 @app.post("/chat/agent")
 async def chat_agent(request: ChatRequest):
@@ -85,7 +87,10 @@ async def chat_agent(request: ChatRequest):
 async def chat_chain(request: ChatRequest):
     start_time = time.time()
     try:
-        inputs = {"messages": [HumanMessage(content=request.query)]}
+        inputs = {
+            "messages": [HumanMessage(content=request.query)],
+            "session_id": request.session_id
+        }
         # The chain.py middleware will populate request.state["retrieved_doc_ids"]
         # but we need to access it. LangChain's create_agent returns a CompiledStateGraph
         # we can't easily access the middleware-modified request.state from the response 
@@ -116,12 +121,15 @@ async def chat_chain(request: ChatRequest):
         if "messages" in response:
             last_message = response["messages"][-1]
             content = last_message.content
-            metadata = last_message.response_metadata
-        else:
-            content = str(response)
             metadata = {}
 
         set_llm_cache(prompt_hash_key, content)
+        
+        # PERSIST AI RESPONSE TO MEMORY
+        from memory import ChatMemoryManager
+        from langchain_core.messages import AIMessage
+        memory = ChatMemoryManager(session_id=request.session_id)
+        memory.add_message(AIMessage(content=content))
         
         # ... existing logging ...
         token_usage = get_token_usage_from_metadata(metadata)
