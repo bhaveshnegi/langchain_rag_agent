@@ -264,6 +264,16 @@
       color: var(--ink);
     }
 
+    .msg-row.ai .message a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .msg-row.ai .message a:hover {
+      opacity: 0.7;
+    }
+
     /* Label above message */
     .msg-label {
       font-size: 10.5px;
@@ -498,7 +508,9 @@
       bubble.className = 'message';
 
       if (!isUser) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
         let html = text
+          .replace(urlRegex, '<a href="$1" target="_blank">$1</a>')
           .replace(/Answer:/g, '<strong>Answer:</strong>')
           .replace(/Evidence:/g, '<strong>Evidence:</strong>')
           .replace(/Source reasoning:/g, '<strong>Source reasoning:</strong>');
@@ -552,7 +564,7 @@
         appendMessage(data.response || 'No response returned.', false);
       } catch {
         hideTyping();
-        appendMessage('Connection error — is the server running on port 8000?', false);
+        appendMessage('Sorry for the interruption. The server is currently stopped. Please check the GitHub repository for more details: https://github.com/bhaveshnegi/langchain_rag_agent', false);
       } finally {
         sendBtn.disabled = false;
         input.focus();
