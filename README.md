@@ -1,6 +1,6 @@
 # LangChain RAG Agent & Chain
 
-This project implements a Retrieval-Augmented Generation (RAG) system using LangChain and Hugging Face.system designed for deep document analysis. Featuring **Hybrid Search**, **Flashrank Re-ranking**, and a **Premium Glassmorphic Interface**, it provides accurate, evidence-backed insights from your technical documentation and privacy policies.
+This project implements a sophisticated Retrieval-Augmented Generation (RAG) system using LangChain. Designed for deep document analysis, it features **Multi-provider LLM support (AWS Bedrock & Hugging Face)**, **3-Layer Redis Caching**, **Persistent Smart Memory**, and **Production-Grade Observability**.
 
 ---
 
@@ -8,69 +8,100 @@ This project implements a Retrieval-Augmented Generation (RAG) system using Lang
 
 - **🔍 Hybrid Retrieval Pipeline**: Combines semantic vector search (Chroma) with keyword matching (BM25) for maximum recall.
 - **🎯 Precise Re-ranking**: Integrates **Flashrank** to refine context and ensure the most relevant chunks reach the LLM.
-- **📂 Multi-Document Support**: Automatically scans and ingests all PDFs from the `data/` directory.
-- **🎨 Premium UI/UX**: A modern, glassmorphic chat interface with animated backgrounds, desktop-grade micro-animations, and Lucide icons.
-- **⚡ Middleware Chain**: Uses LangChain middleware (@dynamic_prompt) for ultra-fast, single-pass RAG execution.
-- **🤖 ReAct Agent**: A secondary pattern implementing a Reasoning-and-Acting loop for complex multi-step queries.
+- **☁️ Multi-Provider LLM**: Native support for **AWS Bedrock** (Mistral/Claude) and **Hugging Face** inference.
+- **⚡ 3-Layer Caching**: Redis-backed caching for Embeddings, Retrieval results, and LLM completions to minimize latency and costs.
+- **🧠 Smart Memory manager**: Persistent chat history with a sliding window and automatic conversation summarization.
+- **📊 Production Observability**: Structured JSON logging with request-scoped metrics, token tracking, and latency profiling.
+- **🛡️ Hardened Prompts**: Production-ready prompt templates with persona grounding, strict hallucination control, and few-shot examples.
+- **🎨 Premium UI/UX**: A modern, glassmorphic chat interface with micro-animations and responsive design.
 
 ---
 
 ## 📂 Project Structure
 
-The codebase is engineered for modularity and scalability:
-
 ### 🧩 Core Modules
-- **`app/retriever.py`**: The heart of the system. Implements manual hybrid search and Flashrank integration.
-- **`app/loader.py`**: Batch processes PDFs using `PyPDFDirectoryLoader`.
-- **`app/vectorstore.py`**: Manages the local **Chroma** persistent database.
-- **`app/embeddings.py`**: Configures `all-mpnet-base-v2` for high-quality semantic vectors.
-- **`app/llm.py`**: Connects to the Mistral-7B inference engine via Hugging Face.
-- **`app/splitter.py`**: Handles recursive character splitting with optimized overlaps.
-- **`app/tools.py`**: Defines the `retrieve_context` tool, which allows the agent to search the vector database.
+- **`app/retriever.py`**: Hybrid search engine with Flashrank re-ranking logic.
+- **`app/llm.py`**: Model factory supporting AWS Bedrock and Hugging Face with response caching.
+- **`app/cache.py`**: Redis-based caching layer for embeddings and LLM responses.
+- **`app/memory.py`**: Manages sliding window history and summarization logic.
+- **`app/observability.py`**: Centralized logging and metadata extraction.
+- **`app/prompts.py`**: Hardened system prompts and few-shot examples.
+- **`app/vectorstore.py`**: Local Chroma DB management.
+- **`app/embeddings.py`**: Cached embedding generation using `all-mpnet-base-v2`.
 
 ### 🚀 Execution Entry Points
-- **`app/chain.py`**: The primary RAG pipeline using the hybrid-rerank middleware.
-- **`app/main.py`**: The standard ReAct agent implementation.
-- **`app/server.py`**: FastAPI backend serving the analysis engine.
-- **`index.html`**: The premium frontend application.
+- **`app/ingest.py`**: Batch processor for ingesting PDFs into the vector store.
+- **`app/chain.py`**: Primary RAG pipeline using optimized middleware.
+- **`app/server.py`**: FastAPI backend serving the RAG engine.
+- **`index.html`**: Premium glassmorphic frontend.
 
 ---
 
 ## 🛠️ Setup & Execution
 
 ### 1. Prerequisites
-Create a `.env` file in the root with your credentials:
+Install Redis and create a `.env` file:
 ```env
-HUGGINGFACE_API_KEY=hf_your_token_here
+# Provider (AWS or HF)
+LLM=AWS
+
+# AWS Credentials (if using AWS)
+AWS_ACCESS_KEY_ID=your_id
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_REGION=ap-south-1
+
+# Hugging Face (if using HF)
+HUGGINGFACE_API_KEY=hf_...
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
 ### 2. Ingestion
-Drop your PDF documents into the `data/` folder, then run:
+Place PDFs in `data/` and run:
 ```powershell
 python app/ingest.py
 ```
 
-### 3. Start the Analysis Engine
-Run the FastAPI backend:
+### 3. Start the Backend
 ```powershell
-uvicorn app.server:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.server:app --reload
 ```
-
-### 4. Open the Interface
-Simply open `index.html` in your browser (or serve it via `python -m http.server 9000`).
 
 ---
 
-## 🧠 Retrieval Architecture
+## 🧠 Advanced Architecture
 
-Nexback uses a sophisticated 2-stage retrieval process:
-1. **Candidate Retrieval**: Fetches top-$K$ candidates independently from **BM25** (keyword) and **Chroma** (vector).
-2. **Flashrank Re-ranking**: Merges the results and uses a cross-encoder model to re-score every chunk, delivering only the most contextually relevant evidence to the LLM.
+### 3-Layer Caching Strategy
+1. **Embedding Cache**: Hashes text chunks to skip redundant vector generation.
+2. **Retrieval Cache**: Caches top-K results for identical queries.
+3. **LLM Cache**: Hashes the final system prompt + history to return instant answers for repeat requests.
+
+### Smart Memory Management
+The system tracks conversation length. Once a token threshold is reached:
+- The `ChatMemoryManager` invokes the LLM to generate a concise summary.
+- Short-term history is cleared and replaced by the summary.
+- A sliding window of the last $N$ messages is maintained for immediate context.
+
+### Observability & Monitoring
+Every request emits a structured JSON log:
+```json
+{
+  "timestamp": "2024-...",
+  "event_type": "chain_request",
+  "query": "...",
+  "latency_seconds": 1.2,
+  "model_id": "mistral.7b-v0.2",
+  "retrieved_doc_ids": ["uuid-1", "uuid-2"],
+  "token_usage": {"input": 450, "output": 120}
+}
+```
 
 ---
 
 ## 📝 Document Evidence
-The system is tuned to provide transparency. Every answer is expected to include:
-- **Answer**: The concise factual response.
-- **Evidence**: Direct quotes from the source documents.
-- **Source Reasoning**: A brief explanation of the logic applied.
+The system enforces strict grounding. Every response includes:
+- **Answer**: Concise factual response.
+- **Evidence**: Direct quotes from the source.
+- **Source Reasoning**: Logic explaining the extraction.
