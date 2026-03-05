@@ -564,7 +564,7 @@
         appendMessage(data.response || 'No response returned.', false);
       } catch {
         hideTyping();
-        appendMessage('Sorry for the interruption. The server is currently stopped. Please check the GitHub repository for more details: https://github.com/bhaveshnegi/langchain_rag_agent', false);
+        appendMessage('⚠️ Demo Mode: The LLM backend is currently disabled to avoid hosting costs. The full RAG pipeline works locally. Please check the GitHub repository for the complete implementation and setup: https://github.com/bhaveshnegi/langchain_rag_agent', false);
       } finally {
         sendBtn.disabled = false;
         input.focus();
